@@ -1,13 +1,26 @@
+//Project Type
+enum ProjectStatus { ACTIVE, FINISHED}
+
+class Project {
+    constructor(public id: string,
+                public title: string,
+                public description: string,
+                public people: number,
+                public status: ProjectStatus) {
+    }
+}
+
 //Project State Management
+type Listener = (items: Project[]) => void;
 class ProjectState {
-    private listeners: any[] = [];
-    private projects: any[] = [];
+    private listeners: Listener[] = [];
+    private projects: Project[] = [];
     private static instance: ProjectState;
 
     private constructor() {
     }
 
-    static  getInstance() {
+    static getInstance() {
         if (this.instance) {
             return this.instance;
         }
@@ -15,17 +28,17 @@ class ProjectState {
         return this.instance;
     }
 
-    addListener(listenerFn: Function) {
+    addListener(listenerFn: Listener) {
         this.listeners.push(listenerFn);
     }
 
     addProject(title: string, description: string, numberOfPeople: number) {
-        const newProject = {
-            id: Math.random().toString(),
-            title: title,
-            description: description,
-            people: numberOfPeople
-        };
+        const newProject = new Project(
+            Math.random().toString(),
+            title,
+            description,
+            numberOfPeople,
+            ProjectStatus.ACTIVE);
         this.projects.push(newProject);
         for (const listenerFn of this.listeners) {
             listenerFn(this.projects.slice());
@@ -57,7 +70,7 @@ interface Validatable {
     max?: number;
 }
 
-function validate(validatable : Validatable) {
+function validate(validatable: Validatable) {
     let isValid = true;
     if (validatable.required) {
         isValid = isValid && validatable.value.toString().trim().length !== 0;
@@ -82,7 +95,8 @@ class ProjectList {
     templateElement: HTMLTemplateElement;
     hostElement: HTMLDivElement;
     element: HTMLElement;
-    assignedProjects: any[];
+    assignedProjects: Project[];
+
     constructor(private type: 'active' | 'finished') {
         this.templateElement = document.getElementById('project-list')! as HTMLTemplateElement;
         this.hostElement = document.getElementById('app')! as HTMLDivElement;
@@ -92,7 +106,7 @@ class ProjectList {
         this.element = importedNode.firstElementChild as HTMLElement;
         this.element.id = `${type}-projects`;
 
-        projectState.addListener((projects: any[]) => {
+        projectState.addListener((projects: Project[]) => {
             this.assignedProjects = projects;
             this.renderProjects();
         });
@@ -109,6 +123,7 @@ class ProjectList {
             listEl.appendChild(listItem);
         }
     }
+
     private renderContent() {
         const listId = `${this.type}-projects-list`;
         this.element.querySelector('ul')!.id = listId;
@@ -150,18 +165,18 @@ class ProjectInput {
         const enteredDescription = this.descriptionInputElement.value;
         const enteredPeople = this.peopleInputElement.value;
 
-        const titleValidatable : Validatable = {
+        const titleValidatable: Validatable = {
             value: enteredTitle,
             required: true
         };
 
-        const descriptorValidatable : Validatable = {
+        const descriptorValidatable: Validatable = {
             value: enteredDescription,
             required: true,
             minLength: 5,
         };
 
-        const peopleValidatable : Validatable = {
+        const peopleValidatable: Validatable = {
             value: +enteredPeople,
             required: true,
             min: 1,
@@ -188,7 +203,7 @@ class ProjectInput {
         const userInput = this.gatherUserInput();
         if (Array.isArray(userInput)) {
             const [title, description, people] = userInput;
-            projectState.addProject(title,description,people);
+            projectState.addProject(title, description, people);
             this.clearInputs();
         }
     }
